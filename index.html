@@ -723,7 +723,20 @@
     function renderAtlas() {
         const countriesList = document.getElementById('countries-list');
         const summitsList = document.getElementById('summits-list');
+        const atlasStats = document.getElementById('atlas-stats');
         
+        // Calculate Detailed Stats
+        const visitedCountries = DATA.countries.filter(c => c.status === 'besucht');
+        const mostVisited = visitedCountries.sort((a, b) => b.visits - a.visits)[0]?.name || '-';
+        const bestRated = visitedCountries.sort((a, b) => b.rating - a.rating)[0]?.name || '-';
+        const highestSummit = DATA.summits.filter(s => s.status === 'erreicht').sort((a, b) => b.height - a.height)[0];
+        
+        atlasStats.innerHTML = `
+            <div class="stat-card"><span class="stat-value" style="font-size:1.2rem;">${mostVisited}</span><span class="stat-label">Meistbesucht</span></div>
+            <div class="stat-card"><span class="stat-value" style="font-size:1.2rem;">${bestRated}</span><span class="stat-label">Bestbewertet</span></div>
+            <div class="stat-card"><span class="stat-value" style="font-size:1.2rem;">${highestSummit ? highestSummit.name + ' (' + highestSummit.height + 'm)' : '-'}</span><span class="stat-label">Höchster Gipfel</span></div>
+        `;
+
         countriesList.innerHTML = DATA.countries.length ? '' : '<p class="mono">Keine Länder eingetragen.</p>';
         summitsList.innerHTML = DATA.summits.length ? '' : '<p class="mono">Keine Gipfel eingetragen.</p>';
 
