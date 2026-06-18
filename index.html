@@ -256,6 +256,52 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 10px; }
+
+        /* Achievements */
+        .achievement-badge {
+            background: var(--surface-color);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+            transition: var(--transition);
+            filter: grayscale(1);
+            opacity: 0.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 160px;
+        }
+
+        .achievement-badge.unlocked {
+            filter: grayscale(0);
+            opacity: 1;
+            border-color: var(--gold);
+            box-shadow: 0 0 15px var(--accent-glow);
+            background: linear-gradient(145deg, var(--surface-color), #1c1c1e);
+        }
+
+        .achievement-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .achievement-title {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--gold);
+            margin-bottom: 5px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .achievement-desc {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
     </style>
 </head>
 <body>
@@ -466,8 +512,38 @@
             updateStats();
             renderAtlas();
             renderLibrary();
+            renderAchievements();
             updateMapMarkers();
             if(geojsonLayer) geojsonLayer.setStyle(countryStyle);
+        }
+
+        const ACHIEVEMENTS = [
+            { id: 'world_traveler_1', title: 'Weltenbummler I', desc: 'Besuche 5 Länder.', icon: '✈️', check: (d) => d.countries.filter(c => c.status === 'visited').length >= 5 },
+            { id: 'world_traveler_2', title: 'Weltenbummler II', desc: 'Besuche 10 Länder.', icon: '🌎', check: (d) => d.countries.filter(c => c.status === 'visited').length >= 10 },
+            { id: 'summit_club_1', title: 'Basislager', desc: 'Erreiche deinen ersten Gipfel.', icon: '⛺', check: (d) => d.summits.length >= 1 },
+            { id: 'summit_club_2', title: 'Gipfelstürmer', desc: 'Erreiche 5 Gipfel.', icon: '🏔️', check: (d) => d.summits.length >= 5 },
+            { id: 'bookworm_1', title: 'Leseratte', desc: 'Lies 5 Bücher.', icon: '📚', check: (d) => d.media.filter(m => m.type === 'book').length >= 5 },
+            { id: 'cineast_1', title: 'Cineast', desc: 'Schaue 10 Filme.', icon: '🎬', check: (d) => d.media.filter(m => m.type === 'movie').length >= 10 },
+            { id: 'philosopher', title: 'Denker', desc: 'Lies 3 Bücher über Philosophie.', icon: '🧠', check: (d) => d.media.filter(m => m.type === 'book' && m.genre?.includes('Philosophie')).length >= 3 },
+            { id: 'genre_master', title: 'Genre-Meister', desc: 'Sammle Medien aus 5 verschiedenen Genres.', icon: '🎭', check: (d) => {
+                const genres = new Set();
+                d.media.forEach(m => m.genres?.forEach(g => genres.add(g)));
+                return genres.size >= 5;
+            }}
+        ];
+
+        function renderAchievements() {
+            const container = document.getElementById('achievements-grid');
+            container.innerHTML = ACHIEVEMENTS.map(ach => {
+                const isUnlocked = ach.check(DATA);
+                return `
+                    <div class="achievement-badge ${isUnlocked ? 'unlocked' : ''}">
+                        <span class="achievement-icon">${ach.icon}</span>
+                        <div class="achievement-title">${ach.title}</div>
+                        <div class="achievement-desc">${ach.desc}</div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function updateStats() {
@@ -529,6 +605,14 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label class="form-label">Genre (optional)</label>
+                        <input type="text" id="field-genre" class="form-control" placeholder="z.B. Philosophie, Sci-Fi">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Autor / Regisseur (optional)</label>
+                        <input type="text" id="field-creator" class="form-control">
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Bewertung</label>
                         <div class="star-rating" id="rating-stars">
                             ${[1,2,3,4,5].map(i => `<span class="star" onclick="setRating(${i})">★</span>`).join('')}
@@ -582,10 +666,13 @@
                     date: new Date().toISOString()
                 });
             } else if(addType === 'media') {
+                const genreStr = document.getElementById('field-genre').value;
                 DATA.media.push({
                     title: name,
                     type: document.getElementById('field-type').value,
                     rating: document.getElementById('field-rating').value,
+                    genres: genreStr ? genreStr.split(',').map(s => s.trim()) : [],
+                    creator: document.getElementById('field-creator').value,
                     date: new Date().toISOString()
                 });
             } else if(addType === 'summit') {
